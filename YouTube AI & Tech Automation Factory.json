@@ -1,0 +1,494 @@
+{
+  "name": "AI Automation Factory - Tech & Future",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger-node",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        -860,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  { json: { type: 'short' } },\n  { json: { type: 'mid' } }\n];"
+      },
+      "id": "playlist-generator-node",
+      "name": "Playlist Generator",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -680,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "split-batches-node",
+      "name": "SplitInBatches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [
+        -500,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.type }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "short"
+            },
+            {
+              "value2": "mid",
+              "output": 1
+            },
+            {
+              "value2": "long",
+              "output": 2
+            }
+          ]
+        }
+      },
+      "id": "switch-router-node",
+      "name": "Switch Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        -300,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4o",
+        "prompt": {
+          "messages": [
+            {
+              "content": "You are the Lead Editor of a viral Tech & AI YouTube channel called \"The AI Nexus\".\nTarget Audience: Tech enthusiasts, Developers, Business Owners, Futurists.\nTopic: A mind-blowing fact about Artificial Intelligence, The Singularity, Automation, or The Future of Work.\n\n### INSTRUCTIONS FOR SCRIPT (THE INFINITE LOOP):\n1. Write a short script (approx 40-50 words) designed for a 15-second loop.\n2. STRUCTURE:\n   - **Hook:** Start with a strong statement (e.g., \"AI just changed everything...\", \"This tool replaces...\", \"The scary truth about AGI...\").\n   - **The Fact:** Explain the concept simply and objectively.\n   - **The Loop Connector (CRITICAL):** The script MUST end with a phrase that flows seamlessly back into the start.\n   - Example Loop: End: \"...and that is why...\" -> Start: \"...AI will rewrite history.\"\n3. TONE: Professional, Fast-paced, Visionary, Informative.\n\n### INSTRUCTIONS FOR VISUALS (FUTURISTIC 3D LOOPS):\n**CRITICAL RULE: DO NOT GENERATE SPECIFIC PEOPLE OR TEXT.**\n**THEME: HIGH-TECH, CYBERPUNK, ABSTRACT DATA.**\n\nRANDOMLY SELECT ONE of the following visual themes for the Luma Ray 3D generator:\n\n1.  **Neural Networks:** Glowing nodes connecting and firing in a dark void (blue/neon).\n2.  **Data Stream:** Matrix-style digital rain or fiber optic cables pulsing with light.\n3.  **Cyberpunk City Abstract:** Neon lights reflecting in rain, abstract macro view of a futuristic chip.\n4.  **Liquid Metal:** Chrome or gold liquid morphing shapes in zero gravity.\n\n**Color Palette:** Neon Blue, Cyber Purple, Dark Metallic Grey, Electric Green.\nStyle: Unreal Engine 5, 3D Render, Hyper-realistic, Motion Graphics, Cinematic Lighting.\n**ABSOLUTELY NO TEXT IN THE VIDEO.**\n\n### OUTPUT FORMAT (Strict JSON):\n{\n  \"title\": \"A viral AI title (lowercase, punchy, e.g., 'agi is here')\",\n  \"script\": \"The full narration text for the infinite loop.\",\n  \"visual_prompt\": \"The detailed prompt for the video generator. Focus on MOTION and LIGHTING.\"\n}\nRETURN RAW JSON ONLY. DO NOT USE MARKDOWN."
+            }
+          ]
+        },
+        "options": {},
+        "requestOptions": {}
+      },
+      "id": "openai-short-node",
+      "name": "OpenAI Short",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "prompt": {
+          "messages": [
+            {
+              "content": "Generate a 2-min video script about the Evolution of AI (e.g., Turing Test to GPT-4). Output JSON: { title, script, scene_1, scene_2, scene_3 }"
+            }
+          ]
+        },
+        "options": {},
+        "requestOptions": {}
+      },
+      "id": "openai-mid-node",
+      "name": "OpenAI Mid",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "prompt": {
+          "messages": [
+            {
+              "content": "Generate a 3-hour Coding Ambience concept (Cyberpunk Rain or Server Room Hum). Output JSON: { title, visual_prompt, music_prompt }"
+            }
+          ]
+        },
+        "options": {},
+        "requestOptions": {}
+      },
+      "id": "openai-long-node",
+      "name": "OpenAI Long",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.replicate.com/v1/models/luma/ray/predictions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Token YOUR_REPLICATE_KEY_HERE"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"input\": {\n    \"prompt\": \"{{ JSON.parse($node['OpenAI Short'].json.message.content.replace(/```json/g, '').replace(/```/g, '')).visual_prompt }}, 4k, hyper-realistic, 3d render, loopable motion, cinematic lighting\",\n    \"aspect_ratio\": \"9:16\",\n    \"loop\": true\n  }\n}",
+        "options": {}
+      },
+      "id": "replicate-request-node",
+      "name": "Replicate Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        200,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.replicate.com/v1/predictions/{{ $node[\"Replicate Request\"].json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Token YOUR_REPLICATE_KEY_HERE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "check-replicate-status",
+      "name": "Check Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        460,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "minutes"
+      },
+      "id": "wait-node",
+      "name": "Wait for Render",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        340,
+        100
+      ],
+      "webhookId": "webhook-wait-id"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.creatomate.com/v1/renders",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_CREATOMATE_KEY_HERE"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"template_id\": \"YOUR_TEMPLATE_ID_HERE\",\n  \"modifications\": {\n    \"Image\": \"{{ $json.output[0] }}\",\n    \"Text\": \"{{ JSON.parse($node['OpenAI Short'].json.message.content).title }}\",\n    \"Voice\": \"{{ JSON.parse($node['OpenAI Short'].json.message.content).script }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "creatomate-request-node",
+      "name": "Creatomate Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        660,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "minutes"
+      },
+      "id": "wait-buffer-node",
+      "name": "Wait Buffer",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        840,
+        240
+      ],
+      "webhookId": "webhook-buffer-id"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Creatomate Request').item.json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "download-file-node",
+      "name": "Download Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1020,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "operation": "upload",
+        "title": "={{ JSON.parse($node[\"OpenAI Short\"].json.message.content).title }}",
+        "regionCode": "US",
+        "categoryId": "28",
+        "options": {}
+      },
+      "id": "youtube-upload-node",
+      "name": "Upload to YouTube",
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🤖 AI & Tech Automation Factory\nThis workflow fully automates a **Faceless Tech Channel**.\n\n### 1. Strategy (The Brain)\n- **Schedule Trigger:** Starts the factory every morning.\n- **Playlist Gen:** Decides the mix of content (Shorts, Docs, Ambience).\n- **OpenAI (GPT-4o):** Acts as the Creative Director. It writes viral scripts about AI, Singularity, and Future Tech using a \"Cyberpunk\" aesthetic.\n\n### 2. Visuals (The Artist)\n- **Replicate (Luma Ray):** Generates 3D infinite loops (Abstract Data, Neural Networks, Neon Flows) based on OpenAI's prompt.\n\n### 3. Production (The Editor)\n- **Creatomate:** Takes the script + 3D video, adds AI Voiceover and dynamic subtitles.\n\n### 4. Distribution\n- **YouTube Upload:** Publishes the final MP4 automatically.",
+        "height": 455,
+        "width": 551,
+        "color": 4
+      },
+      "id": "sticky-note-explanation",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -280,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### ⚠️ Configuration Required\nBefore running this workflow, you must:\n\n1. **Add Credentials:**\n   - OpenAI API\n   - YouTube OAuth2\n\n2. **Replace Placeholders:**\n   - In `Replicate Request`: Replace `YOUR_REPLICATE_KEY_HERE`\n   - In `Creatomate Request`: Replace `YOUR_CREATOMATE_KEY_HERE` and `YOUR_TEMPLATE_ID_HERE`",
+        "height": 266,
+        "width": 387,
+        "color": 7
+      },
+      "id": "sticky-note-warning",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        360,
+        -260
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Playlist Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Playlist Generator": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SplitInBatches": {
+      "main": [
+        [
+          {
+            "node": "Switch Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Router": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Short",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI Mid",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI Long",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Short": {
+      "main": [
+        [
+          {
+            "node": "Replicate Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Mid": {
+      "main": [
+        [
+          {
+            "node": "Replicate Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Long": {
+      "main": [
+        [
+          {
+            "node": "Replicate Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replicate Request": {
+      "main": [
+        [
+          {
+            "node": "Wait for Render",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Render": {
+      "main": [
+        [
+          {
+            "node": "Check Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Status": {
+      "main": [
+        [
+          {
+            "node": "Creatomate Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Creatomate Request": {
+      "main": [
+        [
+          {
+            "node": "Wait Buffer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Buffer": {
+      "main": [
+        [
+          {
+            "node": "Download Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Video": {
+      "main": [
+        [
+          {
+            "node": "Upload to YouTube",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to YouTube": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
