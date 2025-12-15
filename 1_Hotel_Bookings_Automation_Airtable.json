@@ -1,0 +1,405 @@
+{
+  "name": "WhatsApp Hotel AI Agent - Booking Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-webhook",
+        "options": {}
+      },
+      "id": "webhook-whatsapp",
+      "name": "Webhook WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -220,
+        240
+      ],
+      "webhookId": "whatsapp-webhook-id"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "messenger-webhook",
+        "options": {}
+      },
+      "id": "webhook-messenger",
+      "name": "Webhook Messenger FB",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -220,
+        420
+      ],
+      "webhookId": "messenger-webhook-id"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.message || $json.query.message }}",
+        "options": {
+          "systemMessage": "You are a helpful and polite Hotel Concierge Agent.\nYour goal is to assist customers with checking room prices, finding existing reservations, creating new bookings, and modifying dates.\n\nRULES:\n1. Always check 'Pricing Rules' before quoting a price.\n2. Always check 'Search Records' (Availability) before confirming a booking.\n3. If a user wants to change a reservation, first 'Search' for it, then use 'Modify Booking'.\n4. Be concise and use a friendly tone.\n5. If the user confirms, use 'Create Booking' to save it to the database."
+        }
+      },
+      "id": "ai-agent",
+      "name": "AI Hotel Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        140,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "openai-model",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        100,
+        560
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "memory",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.2,
+      "position": [
+        260,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "name": "get_pricing_rules",
+        "description": "Retrieves the current room rates and pricing rules from the database.",
+        "operation": "get",
+        "sheetId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_GOOGLE_SHEET_ID"
+        },
+        "range": "A:C",
+        "options": {}
+      },
+      "id": "tool-pricing",
+      "name": "Pricing Rules",
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 1,
+      "position": [
+        400,
+        740
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GSHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "search_availability",
+        "description": "Checks if a room is available for specific dates or searches for existing client records.",
+        "operation": "list",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_AIRTABLE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Bookings",
+          "mode": "id"
+        }
+      },
+      "id": "tool-search",
+      "name": "Search Records",
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 1,
+      "position": [
+        560,
+        740
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "YOUR_AIRTABLE_CREDENTIAL_ID",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "create_booking",
+        "description": "Creates a new reservation in the system when the user confirms.",
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_AIRTABLE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Bookings",
+          "mode": "id"
+        }
+      },
+      "id": "tool-create",
+      "name": "Create Booking",
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 1,
+      "position": [
+        720,
+        740
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "YOUR_AIRTABLE_CREDENTIAL_ID",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "find_client_reservation",
+        "description": "Searches for a specific reservation by Client Name or Booking ID.",
+        "operation": "list",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_AIRTABLE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Bookings",
+          "mode": "id"
+        }
+      },
+      "id": "tool-find-client",
+      "name": "Cauta Rezervare Client",
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 1,
+      "position": [
+        880,
+        740
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "YOUR_AIRTABLE_CREDENTIAL_ID",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "modify_booking",
+        "description": "Updates or modifies an existing reservation (change dates, cancel, etc).",
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_AIRTABLE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Bookings",
+          "mode": "id"
+        }
+      },
+      "id": "tool-update",
+      "name": "Modifica Rezervare",
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        740
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "YOUR_AIRTABLE_CREDENTIAL_ID",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "sms",
+        "from": "+1234567890",
+        "to": "={{ $json.fromNumber }}",
+        "message": "={{ $json.output }}"
+      },
+      "id": "whatsapp-send",
+      "name": "Send WhatsApp Message",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        680,
+        320
+      ],
+      "credentials": {
+        "twilioApi": {
+          "id": "YOUR_TWILIO_CREDENTIAL_ID",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### 🏨 Hotel AI Agent Setup\n\n**1. Credentials Needed:**\n- OpenAI API Key (GPT-4o recommended for function calling).\n- Airtable Personal Access Token.\n- Google Sheets OAuth2.\n- Twilio (or Meta Cloud API) for WhatsApp.\n\n**2. Database Structure (Airtable):**\nCreate a table named `Bookings` with columns:\n- `Client Name` (Single line text)\n- `Check-in Date` (Date)\n- `Check-out Date` (Date)\n- `Room Type` (Single select)\n- `Status` (Confirmed/Cancelled)\n\n**3. Pricing (Google Sheets):**\nColumns: `Room Type`, `Price Per Night`, `Season`.",
+        "height": 380,
+        "width": 500,
+        "color": 6
+      },
+      "id": "sticky-note-setup",
+      "name": "Sticky Note Setup",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 🧠 How it works\nThis is an **Agentic Workflow**. The AI decides which tool to use based on the user's message.\n\n- \"How much is a room?\" -> Triggers `Pricing Rules`.\n- \"I want to book for tomorrow\" -> Triggers `Search Records` then `Create Booking`.\n- \"Change my reservation\" -> Triggers `Cauta Rezervare` then `Modifica Rezervare`.",
+        "height": 260,
+        "width": 500,
+        "color": 4
+      },
+      "id": "sticky-note-logic",
+      "name": "Sticky Note Logic",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        260,
+        -60
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "AI Hotel Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Messenger FB": {
+      "main": [
+        [
+          {
+            "node": "AI Hotel Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_language_model": [
+        [
+          {
+            "node": "AI Hotel Agent",
+            "type": "ai_language_model",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Hotel Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pricing Rules": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Hotel Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Records": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Hotel Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Booking": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Hotel Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cauta Rezervare Client": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Hotel Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modifica Rezervare": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Hotel Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Hotel Agent": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

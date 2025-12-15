@@ -1,0 +1,723 @@
+{
+  "name": "Viral ASMR Automation - Fal.ai & Socials",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        -280,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "prompt": {
+          "messages": [
+            {
+              "content": "Generate a creative, viral idea for a 10-second satisfying ASMR video loop.\nTopics: Slime, Kinetic Sand, Soap Cutting, Paint Mixing, Frost.\nOutput: Just the description of the visual action."
+            }
+          ]
+        },
+        "options": {},
+        "requestOptions": {}
+      },
+      "id": "idea-node",
+      "name": "Generate Idea",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        100
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "prompt": {
+          "messages": [
+            {
+              "content": "Based on this idea: '{{ $json.message.content }}'\n\nWrite a highly detailed visual prompt for an AI Video Generator (Fal.ai).\nKeywords to include: Macro lens, 8k, hyper-realistic, slow motion, soft lighting, depth of field."
+            }
+          ]
+        },
+        "options": {},
+        "requestOptions": {}
+      },
+      "id": "prompt-node",
+      "name": "Create Visual Prompt",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        160,
+        100
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "prompt": {
+          "messages": [
+            {
+              "content": "Generate a short, click-baity title for this ASMR video (max 5 words). E.g., 'So satisfying...', 'Watch till end'."
+            }
+          ]
+        },
+        "options": {},
+        "requestOptions": {}
+      },
+      "id": "title-node",
+      "name": "Generate Title",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        380,
+        100
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "application": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_APP_ID"
+        },
+        "table": "YOUR_TABLE_ID",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Title": "={{ $json.message.content }}",
+            "Status": "Generating"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultVisible": true,
+              "unique": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultVisible": true,
+              "unique": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "airtable-log-start",
+      "name": "Log Start",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        360
+      ],
+      "credentials": {
+        "airtableApi": {
+          "id": "YOUR_AIRTABLE_CREDENTIAL_ID",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/fast-svd",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Key YOUR_FAL_KEY_HERE"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "={{ $node[\"Create Visual Prompt\"].json.message.content }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fal-video-request",
+      "name": "Fal.ai Video Req",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        160,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "seconds"
+      },
+      "id": "wait-video",
+      "name": "Wait for Video",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        380,
+        360
+      ],
+      "webhookId": "41fd89d4-982a-4771-92cb-ce47cd99b13e"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.request_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Key YOUR_FAL_KEY_HERE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fal-video-retrieve",
+      "name": "Get Video Result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        580,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/mmaudio",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Key YOUR_FAL_KEY_HERE"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "video_url",
+              "value": "={{ $json.video.url }}"
+            },
+            {
+              "name": "prompt",
+              "value": "ASMR sounds, satisfying, crisp, high fidelity"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fal-audio-request",
+      "name": "Fal.ai Audio Gen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -60,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 20,
+        "unit": "seconds"
+      },
+      "id": "wait-audio",
+      "name": "Wait for Audio",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        160,
+        560
+      ],
+      "webhookId": "ed901f98-21d2-46e7-9229-2c529b92e797"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.request_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Key YOUR_FAL_KEY_HERE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fal-audio-retrieve",
+      "name": "Get Final Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        380,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.video_url || $json.audio_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "download-file",
+      "name": "Download File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -60,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.your-custom-backend.com/upload",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "upload-node",
+      "name": "Upload to Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        160,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "platforms",
+              "value": "Youtube, Instagram, Tiktok"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-platforms",
+      "name": "Set Platforms",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        380,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.your-custom-backend.com/youtube",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "title",
+              "value": "={{ $node[\"Generate Title\"].json.message.content }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "youtube-post",
+      "name": "Youtube Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -60,
+        1000
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.your-custom-backend.com/instagram",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "caption",
+              "value": "={{ $node[\"Generate Title\"].json.message.content }} #asmr"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "instagram-post",
+      "name": "Instagram Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        160,
+        1000
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.your-custom-backend.com/tiktok",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "description",
+              "value": "={{ $node[\"Generate Title\"].json.message.content }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "tiktok-post",
+      "name": "Tiktok Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        380,
+        1000
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "application": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_APP_ID"
+        },
+        "table": "YOUR_TABLE_ID",
+        "id": "={{ $node[\"Log Start\"].json.id }}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Done"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultVisible": true,
+              "unique": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "log-result",
+      "name": "Log Result",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [
+        160,
+        1200
+      ],
+      "credentials": {
+        "airtableApi": {
+          "id": "YOUR_AIRTABLE_CREDENTIAL_ID",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### 🧠 Brain & Creative\nGenerates Viral ASMR ideas using OpenAI.\n1. **Idea:** Thinks of a concept (e.g., Slime).\n2. **Prompt:** Writes a techincal prompt for Fal.ai.\n3. **Title:** Creates a clicky title.",
+        "height": 260,
+        "width": 640,
+        "color": 7
+      },
+      "id": "note-brain",
+      "name": "Sticky Note Prompt",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -120,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 🎨 Production (Fal.ai)\nUses Fal.ai API for generation.\n1. **Fast SVD:** Generates the video from text.\n2. **MMAudio:** Generates matching ASMR audio for the video.\n\n*Requires Fal.ai API Key in Header Auth.*",
+        "height": 400,
+        "width": 640,
+        "color": 6
+      },
+      "id": "note-production",
+      "name": "Sticky Note Generate",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -120,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 🚀 Distribution (Important)\nThis template uses placeholders for a custom backend.\n\n**Option A (Developers):** Configure your own API endpoints in these HTTP nodes.\n**Option B (No-Code):** DELETE these HTTP nodes and replace them with n8n's native **YouTube**, **Instagram**, and **TikTok** nodes.",
+        "height": 560,
+        "width": 640,
+        "color": 4
+      },
+      "id": "note-distribution",
+      "name": "Sticky Note Upload",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -120,
+        760
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Generate Idea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Idea": {
+      "main": [
+        [
+          {
+            "node": "Create Visual Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Visual Prompt": {
+      "main": [
+        [
+          {
+            "node": "Generate Title",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Title": {
+      "main": [
+        [
+          {
+            "node": "Log Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Start": {
+      "main": [
+        [
+          {
+            "node": "Fal.ai Video Req",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fal.ai Video Req": {
+      "main": [
+        [
+          {
+            "node": "Wait for Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Video": {
+      "main": [
+        [
+          {
+            "node": "Get Video Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Video Result": {
+      "main": [
+        [
+          {
+            "node": "Fal.ai Audio Gen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fal.ai Audio Gen": {
+      "main": [
+        [
+          {
+            "node": "Wait for Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Audio": {
+      "main": [
+        [
+          {
+            "node": "Get Final Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Final Video": {
+      "main": [
+        [
+          {
+            "node": "Download File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download File": {
+      "main": [
+        [
+          {
+            "node": "Upload to Backend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to Backend": {
+      "main": [
+        [
+          {
+            "node": "Set Platforms",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Platforms": {
+      "main": [
+        [
+          {
+            "node": "Youtube Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Youtube Post": {
+      "main": [
+        [
+          {
+            "node": "Instagram Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Instagram Post": {
+      "main": [
+        [
+          {
+            "node": "Tiktok Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tiktok Post": {
+      "main": [
+        [
+          {
+            "node": "Log Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
